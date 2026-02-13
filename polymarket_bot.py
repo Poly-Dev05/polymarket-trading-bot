@@ -47,17 +47,29 @@ class PolymarketBot:
         self.clob_url = host
         self.host = host
         self.private_key = private_key
-        self.chain_id = chain_id
-        self.signature_type = signature_type
-        self.funder = funder
+        # Ensure chain_id is an int; fall back to POLYGON if invalid
+        resolved_chain_id = chain_id if chain_id is not None else POLYGON
+        try:
+            self.chain_id = int(resolved_chain_id)
+        except (TypeError, ValueError):
+            print(f"Warning: Invalid chain_id '{resolved_chain_id}', defaulting to POLYGON ({POLYGON})")
+            self.chain_id = POLYGON
 
-        # TODO: Initialize CLOB client with proper credentials
-        # Implement your own client initialization logic here
-        self.client = None
-        raise NotImplementedError(
-            "CLOB client initialization removed. "
-            "Implement your own client setup using ClobClient."
+        self.signature_type = int(signature_type) if signature_type is not None else None
+        self.funder = funder
+        print(f"Host: {self.host}")
+        print(f"Funder: {self.funder}")
+        print(f"Chain ID: {self.chain_id}")
+        print(f"Signature Type: {self.signature_type}")
+        self.client = ClobClient(
+            self.host,
+            key=self.private_key,
+            chain_id=self.chain_id,
+            signature_type=self.signature_type,
+            funder=self.funder
         )
+        self.client.set_api_creds(self.client.create_or_derive_api_creds())
+        print("CLOB client initialized successfully")
 
     def get_current_timestamp(self) -> int:
         """Get current Unix timestamp"""
@@ -67,18 +79,18 @@ class PolymarketBot:
         """
         Generate BTC up/down 5-minute market slug from timestamp
         
+        Format: btc-updown-5m-{timestamp}
+        
         Args:
             timestamp: Unix timestamp. If None, uses current time
             
         Returns:
             Market slug string
         """
-        # TODO: Implement your own slug generation logic
-        # Hint: The slug format encodes the market's time window
-        raise NotImplementedError(
-            "Slug generation logic removed. "
-            "Implement your own slug format based on Polymarket's BTC 5-min market naming convention."
-        )
+        if timestamp is None:
+            timestamp = self.get_current_timestamp()
+        
+        return f"btc-updown-5m-{timestamp}"
     
     def find_active_market(self, slug: Optional[str] = None) -> Optional[Dict[Any, Any]]:
         """
@@ -90,12 +102,24 @@ class PolymarketBot:
         Returns:
             Market data dictionary or None if not found
         """
-        # TODO: Implement market discovery via Polymarket Gamma API
-        # Use self.base_url to fetch market data by slug
-        raise NotImplementedError(
-            "Market discovery logic removed. "
-            "Implement your own market lookup using the Gamma API."
-        )
+        if slug is None:
+            slug = self.generate_slug()
+        
+        try:
+            # Use Gamma API to fetch market by slug
+            response = requests.get(f"{self.base_url}/events/slug/{slug}")
+            
+            if response.status_code == 200:
+                market_data = response.json()
+                return market_data
+            else:
+                print(f"Market not found: {slug} (Status: {response.status_code})")
+                return None
+                
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching market: {e}")
+            return None
+    
 
     def get_token_ids(self, market: Optional[Dict[Any, Any]] = None) -> Optional[Dict[str, str]]:
         """
@@ -110,38 +134,106 @@ class PolymarketBot:
         if not market:
             return None
         
-        # TODO: Extract token IDs from the market response
-        # The Gamma API returns a structure containing clobTokenIds
-        # Parse it to get up_token_id and down_token_id
-        raise NotImplementedError(
-            "Token ID extraction logic removed. "
-            "Implement your own parser for Gamma API market data to extract clobTokenIds."
-        )
+        try:
+            # Extract token IDs from market data
+            # Gamma API returns markets array with clobTokenIds
+            markets = market.get('markets', [])
+
+            if not markets or len(markets) == 0:
+                print("Market data does not contain markets array")
+                print(f"Available keys in market: {list(market.keys())}")
+                return None
+            
+            # Get the first market (should be the main market)
+            main_market = markets[0]
+            clob_token_ids_raw = main_market.get('clobTokenIds', None)
+            
+            if clob_token_ids_raw is None:
+                print("Market does not contain clobTokenIds")
+                print(f"Available keys in market[0]: {list(main_market.keys())}")
+                return None
+            
+            # clobTokenIds might be a stringified JSON array, parse it if needed
+            if isinstance(clob_token_ids_raw, str):
+                try:
+                    clob_token_ids = json.loads(clob_token_ids_raw)
+                except json.JSONDecodeError:
+                    print(f"Failed to parse clobTokenIds as JSON: {clob_token_ids_raw}")
+                    return None
+            elif isinstance(clob_token_ids_raw, list):
+                clob_token_ids = clob_token_ids_raw
+            else:
+                print(f"clobTokenIds is not a string or list: {type(clob_token_ids_raw)}")
+                return None
+
+            if len(clob_token_ids) < 2:
+                print(f"Market does not have enough clobTokenIds: {clob_token_ids}")
+                return None
+            
+            # Extract Up and Down token IDs
+            # (typically first is Up/Yes, second is Down/No)
+            up_token_id = clob_token_ids[0]
+            down_token_id = clob_token_ids[1]
+            
+            if up_token_id and down_token_id:
+                return {
+                    'up_token_id': up_token_id,
+                    'down_token_id': down_token_id
+                }
+            else:
+                print(f"Could not extract token IDs from clobTokenIds: {clob_token_ids}")
+                return None
+                
+        except Exception as e:
+            print(f"Error extracting token IDs: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
 
     def find_next_active_market(self) -> Optional[Dict[Any, Any]]:
         """
         Find the next active BTC 5-minute market.
         The active market timestamp is the NEXT 5-minute interval (rounded up).
         """
-        # TODO: Calculate the next 5-minute interval timestamp and find that market
-        raise NotImplementedError(
-            "Next market discovery logic removed. "
-            "Implement your own timestamp rounding to find the upcoming market."
-        )
+        current_timestamp = self.get_current_timestamp()
+        market_timestamp = ((current_timestamp + 299) // 300) * 300
+        slug = self.generate_slug(market_timestamp)
+        market = self.find_active_market(slug)
+        
+        if market:
+            print(f"Found Next active market: {slug}")
+            return market
+        
+        print(f"No Next active market found for timestamp: {market_timestamp}")
+        return None
 
     def find_current_market(self) -> Optional[Dict[Any, Any]]:
         """
         Find the current active BTC 5-minute market.
-        The active market timestamp is the current 5-minute interval.
+        The active market timestamp is the NEXT 5-minute interval (rounded up).
+        
+        Example: If current timestamp is 1770887393, active market is 1770887400
         
         Returns:
             Market data dictionary or None if not found
         """
-        # TODO: Calculate the current 5-minute interval timestamp and find that market
-        raise NotImplementedError(
-            "Current market discovery logic removed. "
-            "Implement your own timestamp rounding to find the active market."
-        )
+        current_timestamp = self.get_current_timestamp()
+        
+        # Round UP to next 5-minute interval
+        # 5 minutes = 300 seconds
+        # Formula: ((timestamp + 299) // 300) * 300
+        market_timestamp = ((current_timestamp) // 300) * 300
+        
+        slug = self.generate_slug(market_timestamp)
+        market = self.find_active_market(slug)
+        
+        if market:
+            print(f"Found Next active market: {slug}")
+            return market
+        
+        print(f"No Next active market found for timestamp: {market_timestamp}")
+        return None
+    
     
     def place_limit_order(
         self,
@@ -164,15 +256,48 @@ class PolymarketBot:
         Returns:
             Order response dictionary or None if failed
         """
-        # TODO: Implement order placement using the CLOB client
-        # 1. Validate inputs (side, price range)
-        # 2. Create OrderArgs
-        # 3. Sign the order via self.client.create_order()
-        # 4. Post the order via self.client.post_order()
-        raise NotImplementedError(
-            "Order placement logic removed. "
-            "Implement your own order creation and signing using the py-clob-client SDK."
-        )
+        if not self.client:
+            print("Error: CLOB client not initialized.")
+            print("Possible reasons:")
+            print("  - Private key not provided or invalid")
+            print("  - py-clob-client not installed (pip install py-clob-client)")
+            print("  - CLOB client initialization failed (check error messages above)")
+            return None
+        
+        if side.upper() not in ["BUY", "SELL"]:
+            print(f"Error: Invalid side '{side}'. Must be 'BUY' or 'SELL'")
+            return None
+        
+        if not (0.0 <= price <= 1.0):
+            print(f"Error: Price must be between 0.0 and 1.0, got {price}")
+            return None
+        
+        try:
+            # Convert order_type to valid CLOB order type
+            # Valid types: "GTC" (Good Till Cancelled), "FOK" (Fill or Kill), "IOC" (Immediate or Cancel
+            # Create OrderArgs object
+            # Note: OrderArgs has defaults for fee_rate_bps=0, nonce=0, expiration=0, taker=ZERO_ADDRESS
+            order = OrderArgs(
+                token_id=token_id,
+                price=float(price),
+                size=float(size),
+                side=BUY if side.upper() == "BUY" else SELL  # Must be "BUY" or "SELL" (uppercase)
+            )
+
+            # Create signed order
+            signed = self.client.create_order(order)
+
+            # Post order with order type
+            resp = self.client.post_order(signed, OrderType.GTC)
+            
+            print(f"Order placed successfully: {resp}")
+            return resp
+                
+        except Exception as e:
+            print(f"Error placing order: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
     
     def place_limit_order_up(
         self,

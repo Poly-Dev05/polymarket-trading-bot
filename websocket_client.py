@@ -19,6 +19,7 @@ load_dotenv()
 class PolymarketCLOBWebSocket:
     def __init__(self):
         """Initialize Polymarket CLOB WebSocket connection"""
+        # Use /ws/market channel for market data
         self.WS_URL = os.getenv("CLOB_WS_URL")
         self.CLOB_API_BASE = os.getenv("CLOB_API_BASE")
         
@@ -45,42 +46,194 @@ class PolymarketCLOBWebSocket:
     
     def on_message(self, ws, message):
         """Handle incoming WebSocket messages"""
-        # TODO: Implement your own message parsing logic
-        # Messages may arrive as JSON objects or arrays of events
-        # Common event types: book, price_change, last_trade_price, ping/pong
-        raise NotImplementedError(
-            "WebSocket message handling removed. "
-            "Implement your own message parser."
-        )
+        # Handle empty or binary messages (ping/pong)
+        if not message or len(message) == 0:
+            return
+        
+        # Skip binary ping/pong frames
+        if isinstance(message, bytes):
+            return
+        
+        try:
+            data = json.loads(message)
+            # print(f"Received message: {data}")
+            # Handle if data is a list (array of events)
+            if isinstance(data, list):
+                for item in data:
+                    self._process_single_message(item)
+            else:
+                self._process_single_message(data)
+                
+        except json.JSONDecodeError:
+            # Skip non-JSON messages (like ping/pong)
+            pass
+        except Exception as e:
+            if hasattr(self, '_debug') and self._debug:
+                print(f"Error processing message: {e}")
+            if self.on_error:
+                self.on_error(e)
     
     def _process_single_message(self, data):
         """Process a single message object"""
-        # TODO: Route messages to appropriate handlers based on event_type
-        # Event types include: book, price_change, last_trade_price, subscribed, error, ping
-        raise NotImplementedError(
-            "Message routing logic removed. "
-            "Implement your own event type dispatcher."
-        )
+        if not isinstance(data, dict):
+            return
+        
+        event_type = data.get("event_type") or data.get("type") or data.get("event")
+        
+        # Check for price_changes array (main format)
+        if "price_changes" in data or (isinstance(data, list) and len(data) > 0 and isinstance(data[0], dict) and "asset_id" in data[0] and "side" in data[0]):
+            self._handle_price_change(data)
+        elif event_type == "book":
+            self._handle_book_update(data)
+        elif event_type == "price_change":
+            self._handle_price_change(data)
+        elif event_type == "last_trade_price":
+            self._handle_trade(data)
+        elif event_type == "subscribed" or data.get("subscribed"):
+            pass  # Subscription confirmed silently
+        elif event_type == "error" or data.get("error"):
+            pass  # Errors handled elsewhere
+        elif event_type == "ping":
+            # Respond to ping
+            pong_msg = {"type": "pong"}
+            self.ws.send(json.dumps(pong_msg))
+        elif event_type == "pong":
+            pass
     
     def _handle_book_update(self, data: Dict):
         """Handle order book update"""
-        # TODO: Parse order book data (bids/asks arrays)
-        # Extract best bid and best ask prices
-        # Store in self.order_books and call self.on_book_update callback
-        raise NotImplementedError(
-            "Order book parsing logic removed. "
-            "Implement your own bid/ask extraction from book snapshots."
-        )
+        # Handle different possible field names
+        asset_id = data.get("asset_id") or data.get("assetId") or data.get("token_id")
+        market_id = data.get("market") or data.get("market_id")
+        bids = data.get("bids", [])
+        asks = data.get("asks", [])
+        timestamp = data.get("timestamp")
+        
+        # Debug logging removed - logs now accumulate instead of overwriting
+        
+        if not asset_id:
+            return
+        
+        # Store order book data
+        self.order_books[asset_id] = {
+            "bids": bids,
+            "asks": asks,
+            "market_id": market_id,
+            "timestamp": timestamp,
+            "last_update": datetime.now()
+        }
+        
+        # Extract best bid and ask - handle different formats
+        best_bid = None
+        best_ask = None
+        
+        # Bids are sorted descending (highest first)
+        if bids and len(bids) > 0:
+            bid = bids[0]
+            try:
+                if isinstance(bid, dict):
+                    # Try multiple possible price field names
+                    best_bid = float(
+                        bid.get("price") or 
+                        bid.get("px") or 
+                        bid.get("p") or 
+                        bid.get("priceNum") or
+                        0
+                    )
+                elif isinstance(bid, (list, tuple)) and len(bid) >= 1:
+                    # Format: [price, size] - price is first element
+                    best_bid = float(bid[0])
+                elif isinstance(bid, str):
+                    best_bid = float(bid)
+                else:
+                    best_bid = float(bid)
+            except (ValueError, TypeError, IndexError):
+                best_bid = None
+        
+        # Asks are sorted ascending (lowest first)
+        if asks and len(asks) > 0:
+            ask = asks[0]
+            try:
+                if isinstance(ask, dict):
+                    # Try multiple possible price field names
+                    best_ask = float(
+                        ask.get("price") or 
+                        ask.get("px") or 
+                        ask.get("p") or 
+                        ask.get("priceNum") or
+                        0
+                    )
+                elif isinstance(ask, (list, tuple)) and len(ask) >= 1:
+                    # Format: [price, size] - price is first element
+                    best_ask = float(ask[0])
+                elif isinstance(ask, str):
+                    best_ask = float(ask)
+                else:
+                    best_ask = float(ask)
+            except (ValueError, TypeError, IndexError):
+                best_ask = None
+        
+        # Only call callback if we have valid prices
+        if best_bid and best_ask and self.on_book_update:
+            self.on_book_update({
+                "asset_id": asset_id,
+                "market_id": market_id,
+                "bids": bids,
+                "asks": asks,
+                "best_bid": best_bid,
+                "best_ask": best_ask,
+                "spread": best_ask - best_bid,
+                "timestamp": timestamp
+            })
     
     def _handle_price_change(self, data: Dict):
         """Handle price change event"""
-        # TODO: Parse price_changes array from the message
-        # Update self.order_books with new best bid/ask
-        # Call self.on_price_change callback when both sides are available
-        raise NotImplementedError(
-            "Price change handling logic removed. "
-            "Implement your own price update parser."
-        )
+        # Handle price_changes array
+        price_changes = data.get("price_changes", [])
+        if not price_changes and isinstance(data, list):
+            price_changes = data
+        
+        if price_changes:
+            for change in price_changes:
+                if isinstance(change, dict):
+                    asset_id = change.get("asset_id")
+                    side = change.get("side")  # "BUY" or "SELL"
+                    price = change.get("price")
+                    
+                    if asset_id and price:
+                        try:
+                            price_float = float(price)
+                            # Store price by asset_id and side
+                            if asset_id not in self.order_books:
+                                self.order_books[asset_id] = {}
+                            
+                            if side == "BUY":
+                                # BUY side = best bid
+                                self.order_books[asset_id]["best_bid"] = price_float
+                            elif side == "SELL":
+                                # SELL side = best ask
+                                self.order_books[asset_id]["best_ask"] = price_float
+                            
+                            # Only call callback if we have both bid and ask for this asset
+                            if "best_bid" in self.order_books[asset_id] and "best_ask" in self.order_books[asset_id]:
+                                bid = self.order_books[asset_id]["best_bid"]
+                                ask = self.order_books[asset_id]["best_ask"]
+                                
+                                # Validate: bid should be <= ask
+                                if bid and ask and bid <= ask:
+                                    if self.on_price_change:
+                                        self.on_price_change({
+                                            "asset_id": asset_id,
+                                            "best_bid": bid,
+                                            "best_ask": ask,
+                                            "spread": ask - bid if (bid and ask) else None
+                                        })
+                        except (ValueError, TypeError):
+                            pass
+        
+        # Also handle single price_change event (backward compatibility)
+        elif self.on_price_change:
+            self.on_price_change(data)
     
     def _handle_trade(self, data: Dict):
         """Handle last trade price event"""
@@ -89,6 +242,7 @@ class PolymarketCLOBWebSocket:
     
     def on_error_handler(self, ws, error):
         """Handle WebSocket errors"""
+        # Only log critical errors
         if self.on_error:
             self.on_error(error)
     
@@ -108,6 +262,7 @@ class PolymarketCLOBWebSocket:
         """Handle WebSocket open"""
         self.connected = True
         
+        # Start keepalive ping
         self._start_keepalive()
         
         if self.on_connect:
@@ -120,20 +275,43 @@ class PolymarketCLOBWebSocket:
     
     def _start_keepalive(self):
         """Start keepalive ping to maintain connection"""
-        # TODO: Implement keepalive mechanism to prevent connection timeout
-        raise NotImplementedError(
-            "Keepalive logic removed. "
-            "Implement your own ping/pong keepalive loop."
-        )
+        def keepalive():
+            while self.running and self.connected:
+                try:
+                    time.sleep(25)
+                    if self.ws and self.connected:
+                        ping_msg = {"type": "ping"}
+                        self.ws.send(json.dumps(ping_msg))
+                except:
+                    self.connected = False
+                    break
+        
+        keepalive_thread = threading.Thread(target=keepalive, daemon=True)
+        keepalive_thread.start()
     
     def _subscribe(self, asset_ids: List[str], market_ids: List[str] = None):
         """Send subscription message"""
-        # TODO: Send subscription message to WebSocket
-        # Format and send the proper subscription payload for the CLOB WS API
-        raise NotImplementedError(
-            "Subscription logic removed. "
-            "Implement your own subscription message format."
-        )
+        if not self.connected or not self.ws:
+            return False
+        
+        subscribe_msg = {
+            "type": "market",
+            "assets_ids": asset_ids
+        }
+        
+        try:
+            msg_str = json.dumps(subscribe_msg)
+            self.ws.send(msg_str)
+            self.subscribed_assets = asset_ids
+            self.subscribed_markets = market_ids or []
+            time.sleep(1)
+            
+            if not self.connected:
+                return False
+            
+            return True
+        except Exception as e:
+            return False
     
     def subscribe(self, asset_ids: List[str], market_ids: List[str] = None):
         """
@@ -157,43 +335,164 @@ class PolymarketCLOBWebSocket:
     
     def get_best_bid_ask(self, asset_id: str) -> Dict:
         """Get best bid and ask prices for an asset"""
-        # TODO: Extract best bid/ask from stored order book
-        raise NotImplementedError(
-            "Best bid/ask extraction removed. "
-            "Implement your own order book price extraction."
-        )
+        order_book = self.get_order_book(asset_id)
+        
+        if not order_book:
+            return {"best_bid": None, "best_ask": None, "spread": None}
+        
+        bids = order_book.get("bids", [])
+        asks = order_book.get("asks", [])
+        
+        # Handle different bid/ask formats
+        best_bid = None
+        best_ask = None
+        bid_size = None
+        ask_size = None
+        
+        if bids and len(bids) > 0:
+            bid = bids[0]
+            if isinstance(bid, dict):
+                best_bid = float(bid.get("price", 0))
+                bid_size = float(bid.get("size", 0))
+            elif isinstance(bid, (list, tuple)) and len(bid) >= 2:
+                best_bid = float(bid[0])
+                bid_size = float(bid[1])
+            else:
+                best_bid = float(bid)
+        
+        if asks and len(asks) > 0:
+            ask = asks[0]
+            if isinstance(ask, dict):
+                best_ask = float(ask.get("price", 0))
+                ask_size = float(ask.get("size", 0))
+            elif isinstance(ask, (list, tuple)) and len(ask) >= 2:
+                best_ask = float(ask[0])
+                ask_size = float(ask[1])
+            else:
+                best_ask = float(ask)
+        
+        spread = best_ask - best_bid if (best_bid and best_ask) else None
+        
+        return {
+            "best_bid": best_bid,
+            "best_ask": best_ask,
+            "spread": spread,
+            "bid_size": bid_size,
+            "ask_size": ask_size
+        }
     
     def get_order_book_summary(self) -> Dict:
         """Get summary of all order books"""
-        # TODO: Build summary dict across all tracked order books
-        raise NotImplementedError(
-            "Order book summary logic removed. "
-            "Implement your own summary builder."
-        )
+        summary = {}
+        for asset_id, order_book in self.order_books.items():
+            best = self.get_best_bid_ask(asset_id)
+            summary[asset_id] = {
+                "best_bid": best["best_bid"],
+                "best_ask": best["best_ask"],
+                "spread": best["spread"],
+                "bid_size": best["bid_size"],
+                "ask_size": best["ask_size"],
+                "num_bids": len(order_book.get("bids", [])),
+                "num_asks": len(order_book.get("asks", [])),
+                "last_update": order_book.get("last_update")
+            }
+        return summary
     
     def get_order_book_from_rest(self, token_id: str) -> Optional[Dict]:
         """Get order book from CLOB REST API"""
-        # TODO: Fetch order book snapshot from REST endpoint
-        raise NotImplementedError(
-            "REST order book fetch removed. "
-            "Implement your own REST API call to get order book data."
-        )
+        try:
+            url = f"{self.CLOB_API_BASE}/book"
+            params = {"token_id": token_id}
+            response = requests.get(url, params=params, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                return data
+        except Exception as e:
+            pass
+        return None
     
     def get_price_from_rest(self, token_id: str) -> Optional[Dict]:
         """Get best bid and ask prices from CLOB REST API"""
-        # TODO: Use get_order_book_from_rest and extract prices
-        raise NotImplementedError(
-            "REST price fetch removed. "
-            "Implement your own REST-based price lookup."
-        )
+        book = self.get_order_book_from_rest(token_id)
+        if not book:
+            return None
+        
+        try:
+            bids = book.get("bids", [])
+            asks = book.get("asks", [])
+            
+            best_bid = None
+            best_ask = None
+            
+            # Bids are sorted descending (highest first)
+            if bids and len(bids) > 0:
+                bid = bids[0]
+                if isinstance(bid, dict):
+                    best_bid = float(bid.get("price") or bid.get("px") or bid.get("p") or 0)
+                elif isinstance(bid, (list, tuple)) and len(bid) >= 1:
+                    best_bid = float(bid[0])
+                else:
+                    best_bid = float(bid)
+            
+            # Asks are sorted ascending (lowest first)
+            if asks and len(asks) > 0:
+                ask = asks[0]
+                if isinstance(ask, dict):
+                    best_ask = float(ask.get("price") or ask.get("px") or ask.get("p") or 0)
+                elif isinstance(ask, (list, tuple)) and len(ask) >= 1:
+                    best_ask = float(ask[0])
+                else:
+                    best_ask = float(ask)
+            
+            if best_bid and best_ask:
+                return {
+                    "best_bid": best_bid,
+                    "best_ask": best_ask,
+                    "spread": best_ask - best_bid
+                }
+        except Exception as e:
+            pass
+        return None
     
     def connect(self, debug: bool = False):
         """Connect to Polymarket CLOB WebSocket"""
-        # TODO: Create WebSocketApp, start in a background thread, and wait for connection
-        raise NotImplementedError(
-            "WebSocket connection logic removed. "
-            "Implement your own WebSocket connection setup."
+        if self.connected:
+            return True
+        
+        self._debug = debug  # Enable debug mode
+        
+        self.ws = websocket.WebSocketApp(
+            self.WS_URL,
+            on_message=self.on_message,
+            on_error=self.on_error_handler,
+            on_close=self.on_close_handler,
+            on_open=self.on_open_handler
         )
+        
+        self.running = True
+        
+        def run_ws():
+            try:
+                self.ws.run_forever(
+                    ping_interval=20,
+                    ping_timeout=10
+                )
+            except Exception as e:
+                self.connected = False
+        
+        self.ws_thread = threading.Thread(target=run_ws, daemon=True)
+        self.ws_thread.start()
+        
+        # Wait for connection
+        timeout = 15
+        start_time = time.time()
+        while not self.connected and (time.time() - start_time) < timeout:
+            time.sleep(0.1)
+        
+        if not self.connected:
+            return False
+        
+        return True
     
     def disconnect(self):
         """Disconnect from WebSocket"""
