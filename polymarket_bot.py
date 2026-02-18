@@ -8,16 +8,25 @@ from typing import Optional, Dict, Any
 import requests
 
 try:
-    from py_clob_client.clob_types import OrderType
+    from py_clob_client.clob_types import OrderType, OrderArgs  # pyright: ignore[reportMissingImports]
     from py_clob_client.client import ClobClient  # pyright: ignore[reportMissingImports]
     from py_clob_client.constants import POLYGON, ZERO_ADDRESS  # pyright: ignore[reportMissingImports]
-    from py_clob_client.clob_types import OrderArgs  # pyright: ignore[reportMissingImports]
     from py_clob_client.order_builder.constants import BUY, SELL  # pyright: ignore[reportMissingImports]
+    # Try to import MarketOrderArgs - may be in different location
+    try:
+        from py_clob_client.clob_types import MarketOrderArgs  # pyright: ignore[reportMissingImports]
+    except ImportError:
+        try:
+            from py_clob_client.order_builder.order_builder import MarketOrderArgs  # pyright: ignore[reportMissingImports]
+        except ImportError:
+            # Fallback: use OrderArgs for market orders
+            MarketOrderArgs = OrderArgs  # type: ignore
 except ImportError:
     ClobClient = None  # type: ignore
     POLYGON = 137
     ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
     OrderArgs = None  # type: ignore
+    MarketOrderArgs = None  # type: ignore
     print("Warning: py-clob-client not installed. Install with: pip install py-clob-client")
 
 
@@ -261,12 +270,21 @@ class PolymarketBot:
             return None
         
         try:
-            # Create OrderArgs object
-            order = MarketOrderArgs(
-                token_id=token_id,
-                size=float(size),
-                side=BUY if side.upper() == "BUY" else SELL  # Must be "BUY" or "SELL" (uppercase)
-            )
+            # Create OrderArgs object for market order
+            # MarketOrderArgs might be the same as OrderArgs or a separate class
+            if MarketOrderArgs and MarketOrderArgs != OrderArgs:
+                order = MarketOrderArgs(
+                    token_id=token_id,
+                    size=float(size),
+                    side=BUY if side.upper() == "BUY" else SELL
+                )
+            else:
+                # Use OrderArgs if MarketOrderArgs is not available
+                order = OrderArgs(
+                    token_id=token_id,
+                    size=float(size),
+                    side=BUY if side.upper() == "BUY" else SELL
+                )
 
             # Create signed order
             signed = self.client.create_market_order(order)
@@ -411,6 +429,7 @@ class PolymarketBot:
         self,
         order_id: str
     ) -> Optional[Dict[Any, Any]]:
+
         """
         Cancel an order on Polymarket CLOB
         """
@@ -419,3 +438,154 @@ class PolymarketBot:
             return None
         
         return self.client.cancel_order(order_id, OrderType.IOC)   
+        
+
+    def merge_tokens(
+        self,
+        token_ids: Dict[str, str], amount: float
+        ) -> Optional[Dict[Any, Any]]:
+            """
+            Merge tokens on Polymarket CLOB
+            """
+            if not self.client:
+                print("Error: CLOB client not initialized.")
+                return None
+            try:
+                return self.client.merge_tokens(token_ids['up_token_id'], token_ids['down_token_id'], amount)   
+            except Exception as e:
+                print(f"Error merging tokens: {e}")
+                import traceback
+                traceback.print_exc()
+                return None
+    
+    def get_balance(self, token_id: str) -> float:
+        """
+        Get balance for a specific token
+        
+        Args:
+            token_id: Token ID to check balance for
+            
+        Returns:
+            Balance as float, or 0.0 if error
+        """
+        if not self.client:
+            return 0.0
+        
+        try:
+            balance = self.client.get_balance(token_id)
+            return float(balance) if balance else 0.0
+        except Exception as e:
+            print(f"Error getting balance for {token_id}: {e}")
+            return 0.0
+    
+    def get_positions(self, token_ids: Dict[str, str]) -> Dict[str, float]:
+        """
+        Get positions (balances) for both UP and DOWN tokens
+        
+        Args:
+            token_ids: Dictionary with 'up_token_id' and 'down_token_id'
+            
+        Returns:
+            Dictionary with 'up_balance' and 'down_balance'
+        """
+        if not token_ids:
+            return {"up_balance": 0.0, "down_balance": 0.0}
+        
+        up_balance = self.get_balance(token_ids.get("up_token_id", ""))
+        down_balance = self.get_balance(token_ids.get("down_token_id", ""))
+        
+        return {
+            "up_balance": up_balance,
+            "down_balance": down_balance
+        }
+    
+    def get_market_close_time(self, market: Optional[Dict[Any, Any]] = None) -> Optional[int]:
+        """
+        Get market close/expiration timestamp
+        
+        Args:
+            market: Market data dictionary. If None, uses find_current_market()
+            
+        Returns:
+            Unix timestamp of market close, or None if not found
+        """
+        if market is None:
+            market = self.find_current_market()
+        
+        if not market:
+            return None
+        
+        try:
+            # Try to get expiration from market data
+            # Markets typically expire 5 minutes after start
+            markets = market.get('markets', [])
+            if markets and len(markets) > 0:
+                main_market = markets[0]
+                # Try different possible field names
+                expiration = (
+                    main_market.get('expirationTimestamp') or
+                    main_market.get('expiration_timestamp') or
+                    main_market.get('endDate') or
+                    main_market.get('end_date') or
+                    main_market.get('endTime') or
+                    main_market.get('end_time')
+                )
+                
+                if expiration:
+                    # Convert to int if it's a string or other type
+                    return int(expiration)
+            
+            # Fallback: calculate from market timestamp (5 minutes = 300 seconds)
+            # Extract timestamp from slug or calculate
+            slug = market.get('slug', '')
+            if slug:
+                # Extract timestamp from slug: btc-updown-5m-{timestamp}
+                try:
+                    timestamp_str = slug.split('-')[-1]
+                    market_start = int(timestamp_str)
+                    # Market closes 5 minutes (300 seconds) after start
+                    return market_start + 300
+                except (ValueError, IndexError):
+                    pass
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error getting market close time: {e}")
+            return None
+    
+    def force_sell_all(self, token_ids: Dict[str, str]) -> Dict[str, Optional[Dict[Any, Any]]]:
+        """
+        Force sell all positions using market orders
+        
+        Args:
+            token_ids: Dictionary with 'up_token_id' and 'down_token_id'
+            
+        Returns:
+            Dictionary with 'up_order' and 'down_order' results
+        """
+        positions = self.get_positions(token_ids)
+        results = {"up_order": None, "down_order": None}
+        
+        # Sell UP tokens if any
+        if positions["up_balance"] > 0:
+            print(f"🔄 Force selling {positions['up_balance']:.6f} UP tokens...")
+            results["up_order"] = self.place_market_order(
+                token_id=token_ids["up_token_id"],
+                side="SELL",
+                size=positions["up_balance"]
+            )
+        
+        # Sell DOWN tokens if any
+        if positions["down_balance"] > 0:
+            print(f"🔄 Force selling {positions['down_balance']:.6f} DOWN tokens...")
+            results["down_order"] = self.place_market_order(
+                token_id=token_ids["down_token_id"],
+                side="SELL",
+                size=positions["down_balance"]
+            )
+        
+        return results
+
+
+
