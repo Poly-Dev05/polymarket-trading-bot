@@ -2,6 +2,7 @@
 PolymarketBot - Trading bot for Polymarket BTC 5-minute up/down markets
 """
 import json
+import os
 import time
 from datetime import datetime
 from typing import Optional, Dict, Any
@@ -57,6 +58,7 @@ class PolymarketBot:
         self.clob_url = host
         self.host = host
         self.private_key = private_key
+        self.market = ""
         # Ensure chain_id is an int; fall back to POLYGON if invalid
         resolved_chain_id = chain_id if chain_id is not None else POLYGON
         try:
@@ -236,7 +238,7 @@ class PolymarketBot:
         
         slug = self.generate_slug(market_timestamp)
         market = self.find_active_market(slug)
-        
+        self.market = market
         if market:
             print(f"Found current active market: {slug}")
             return market
@@ -472,12 +474,29 @@ class PolymarketBot:
         if not self.client:
             return 0.0
         
+        params = {
+            "market": self.market,
+            "status": "OPEN",
+            "limit": 50,
+            "user": os.getenv("FUNDER")
+        }
+
+        url = os.getenv("GET_POSITION_URL")
         try:
-            balance = self.client.get_balance(token_id)
-            return float(balance) if balance else 0.0
+            response = requests.get(url, params=params, timeout=10)
+            if response.text != "[]":
+                data = response.json()
+                if data[0]["token"] == token_id:
+                    return float(data[0]["positions"][0]["size"])
+                else:
+                    return float(data[1]["positions"][0]["size"])
+            else:
+                print("No data found for token_id: ", token_id)
+                return 0.0
         except Exception as e:
-            print(f"Error getting balance for {token_id}: {e}")
-            return 0.0
+                print(f"Error getting balance for {token_id}: {e}")
+                return 0.0
+   
     
     def get_positions(self, token_ids: Dict[str, str]) -> Dict[str, float]:
         """
@@ -492,9 +511,10 @@ class PolymarketBot:
         if not token_ids:
             return {"up_balance": 0.0, "down_balance": 0.0}
         
-        up_balance = self.get_balance(token_ids.get("up_token_id", ""))
-        down_balance = self.get_balance(token_ids.get("down_token_id", ""))
-        
+        up_balance = self.get_balance(token_ids.get("up_token_id"))
+        down_balance = self.get_balance(token_ids.get("down_token_id"))
+        print("up_balance", up_balance)
+        print("down_balance", down_balance)
         return {
             "up_balance": up_balance,
             "down_balance": down_balance

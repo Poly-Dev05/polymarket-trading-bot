@@ -251,14 +251,9 @@ def process_market(bot: PolymarketBot, market: Dict[Any, Any], token_ids: Dict[s
         
         # Check positions
         print(f"\n📈 Checking positions (iteration {iteration})...")
+
         positions = bot.get_positions(token_ids)
-        
-        up_balance = positions["up_balance"]
-        down_balance = positions["down_balance"]
-        
-        print(f"  UP balance:   {up_balance:.6f}")
-        print(f"  DOWN balance: {down_balance:.6f}")
-        print(f"  Difference:   {abs(up_balance - down_balance):.6f}")
+
         
         # Check if positions are equal
         if are_positions_equal(positions):
