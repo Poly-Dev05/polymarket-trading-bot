@@ -2,6 +2,8 @@
 
 🤖 Automated trading bot for Polymarket BTC 5-minute up/down markets. Trade 24/7 with automated position management and risk controls.
 
+[![Polymarket 5min Trading Bot](https://img.youtube.com/vi/DLhBdoVSUmk/maxresdefault.jpg)](https://www.youtube.com/watch?v=DLhBdoVSUmk)
+
 📹 **Demo Video**: [Watch on YouTube](https://www.youtube.com/watch?v=DLhBdoVSUmk)
 
 ## ✨ Features
@@ -58,5 +60,6 @@ See `WORKFLOW.md` for detailed workflow and `polymarket_bot_v1.py` for API refer
 
 ## 📞 Contact
 
-- **Telegram**: [S.E.I](https://t.me/sei_dev)
+- **Telegram**: [@ddev05](https://t.me/ddev05)
+- **Video Demo**: [YouTube](https://www.youtube.com/watch?v=DLhBdoVSUmk)
 
