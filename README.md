@@ -6,6 +6,8 @@
 
 📹 **Demo Video**: [Watch on YouTube](https://www.youtube.com/watch?v=teeMT-c4S3o)
 
+**You can check this bot workflow and how to get profit by using the TG bot within 10 min.**
+
 ## 📸 Screenshot
 
 ![Bot interface](image.png)
