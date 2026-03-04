@@ -6,13 +6,26 @@
 
 📹 **Demo Video**: [Watch on YouTube](https://www.youtube.com/watch?v=teeMT-c4S3o)
 
-**You can check this bot workflow and how to get profit by using the TG bot within 10 min.**
+**You can check this bot workflow and how to get profit by using the TG bot within 10 min:** [S.E.I<ArbitrageBot>](https://t.me/sei_arb_bot)
 
-## 📸 Screenshot
+## 📸 Screenshots
 
-![Bot interface](image.png)
+| Start | Arb Bot |
+|-------|---------|
+| ![Start](assets/arb_bot.png) | ![Arb Bot](assets/start.png) |
 
-*Bot interface showing real-time trading on Polymarket BTC 5-minute up/down market with position management console*
+| Wallet | Settings | Help |
+|--------|----------|------|
+| ![Wallet](assets/wallet.png) | ![Settings](assets/setting.png) | ![Help](assets/help.png) |
+
+*TG bot: start flow, arb bot interface, wallet, settings, and help.*
+
+<details>
+<summary>Images not showing?</summary>
+
+- **In Cursor/VS Code:** Open the project folder `polymarket-trading-bot` as the workspace (File → Open Folder), not the parent `poly` folder. Then the paths `assets/...` resolve correctly.
+- **On GitHub:** Images show when the repo root contains both `README.md` and the `assets/` folder.
+</details>
 
 ## ✨ Features
 
