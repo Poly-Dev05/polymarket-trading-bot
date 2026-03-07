@@ -1,5 +1,7 @@
 # Polymarket BTC 5-Minute Trading Bot
 
+**🌐 Language:** [English](README.md) | [中文](README.zh-CN.md)
+
 **📞 Contact:** [S.E.I](https://t.me/sei_dev) (Telegram)
 
 ---
