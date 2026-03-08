@@ -10,9 +10,9 @@
 
 | Strategy | Description | Bot |
 |----------|-------------|-----|
-| **Strategy 1** | Arbitrage at the middle of the market | [@sei_arb_bot](https://t.me/sei_arb_bot) (~30 min) |
-| **Strategy 2** | High-opportunity trading at end of market cycle | [@seitrading_bot](https://t.me/seitrading_bot) (~1 hour) |
-| **Strategy 3** | Buy one of both UP/DOWN; when liquidity changes, get winning shares for $0.01 | Script 
+| **Strategy 1** | Arbitrage at the middle of the market | [@sei_arb_bot](https://t.me/sei_arb_bot) (~30 min) | Script Bot |
+| **Strategy 2** | High-opportunity trading at end of market cycle | [@seitrading_bot](https://t.me/seitrading_bot) (~1 hour) | Script Bot |
+| **Strategy 3** | Buy one of both UP/DOWN; when liquidity changes, get winning shares for $0.01 | Script Bot
 
 📹 **Watch on YouTube**
 
