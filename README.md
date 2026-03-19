@@ -1,4 +1,4 @@
-# Polymarket BTC 5-Minute Trading | Arbitrage | Bot
+# Polymarket BTC 5-Minute Trading | Arbitrage | Bot (Version 2)
 An automated trading bot designed to identify and execute short-term opportunities in Bitcoin markets on Polymarket. The bot analyzes market data in real time and places trades on 5-minute prediction intervals, allowing it to capitalize on rapid price movements and micro-market inefficiencies.
 
 **🌐 Language:** [English](README.md) | [中文](README.zh-CN.md) | [Français](README.fr.md) | [Español](README.es.md)
