@@ -6,7 +6,6 @@ An automated trading bot designed to identify and execute short-term opportuniti
 **📞 Contact:** [S.E.I](https://t.me/sei_dev) (Telegram)
 
 ---
-
 🤖 Automated trading bot for Polymarket BTC 5-minute up/down markets. Trade 24/7 with three strategies:
 
 | Strategy | Description | Bot |
