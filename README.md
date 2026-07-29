@@ -12,7 +12,7 @@ Also includes a mid-market **arbitrage** mode (buy both sides → merge). This r
 
 | | |
 |--|--|
-| **Telegram** | [`@dizzy`](https://t.me/dizzy) |
+| **Telegram** | [`@dizzy`](https://t.me/dizzy283) |
 | **Polymarket** | [`@uord`](https://polymarket.com/@uord) |
 | **Wallet** | [`0x0a6c99d88523d328f6a8edf7db851796dc7f7e41`](https://polymarket.com/profile/0x0a6c99d88523d328f6a8edf7db851796dc7f7e41) |
 
@@ -234,5 +234,5 @@ Guides: [docs.md](docs.md) · [WORKFLOW.md](WORKFLOW.md)
 ---
 
 ## Links
-- **Telegram:** [@dizzy](https://t.me/dizzy)
+- **Telegram:** [@dizzy](https://t.me/dizzy283)
 - **Polymarket profile:** [@uord](https://polymarket.com/@uord)
