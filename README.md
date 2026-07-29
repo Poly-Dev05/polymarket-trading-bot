@@ -19,9 +19,9 @@ Also includes a mid-market **arbitrage** mode (buy both sides → merge). This r
 
 ## Demo video — Endcycle Sniper
 
-📹 **[Watch endcycle demo](assets/demo-dizzydev.mp4)** (~2 min)
+📹 **[Watch endcycle demo]
 
-[![Endcycle market – last seconds](assets/demo-endcycle-market.png)](assets/demo-dizzydev.mp4)
+https://github.com/user-attachments/assets/010589be-d923-40ee-959c-7d7bfc2dee5e
 
 What the recording shows:
 
