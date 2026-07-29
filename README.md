@@ -12,7 +12,8 @@ Also includes a mid-market **arbitrage** mode (buy both sides → merge). This r
 
 | | |
 |--|--|
-| **Polymarket** | [`@dizzydev`](https://polymarket.com/@dizzydev) |
+| **Telegram** | [`@dizzy`](https://t.me/dizzy) |
+| **Polymarket** | [`@dizzydev`](https://polymarket.com/@uord) |
 | **Wallet** | [`0x43A0961c1c85e834c67661aaFF0dB964baF137d6`](https://polymarket.com/profile/0x43A0961c1c85e834c67661aaFF0dB964baF137d6) |
 
 ---
@@ -27,7 +28,7 @@ What the recording shows:
 
 1. Live **Bitcoin Up or Down** 5-minute window approaching close  
 2. **Price to beat** vs **current BTC** on the market card  
-3. Wallet connect / sign as **`@dizzydev`**  
+3. Wallet connect / sign as **`@uord`**  
 4. Portfolio, P/L curve, withdrawals, and Up/Down trade history across assets  
 
 | Late-cycle market | Portfolio (demo) |
@@ -234,4 +235,4 @@ Guides: [docs.md](docs.md) · [WORKFLOW.md](WORKFLOW.md)
 
 ## Links
 - **Telegram:** [@dizzy](https://t.me/dizzy)
-- **Polymarket profile:** [@dizzydev](https://polymarket.com/@dizzydev)
+- **Polymarket profile:** [@dizzydev](https://polymarket.com/@uord)
