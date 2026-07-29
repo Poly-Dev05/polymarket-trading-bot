@@ -233,5 +233,5 @@ Guides: [docs.md](docs.md) · [WORKFLOW.md](WORKFLOW.md)
 ---
 
 ## Links
-
+- **Telegram:** [@dizzy](https://t.me/dizzy)
 - **Polymarket profile:** [@dizzydev](https://polymarket.com/@dizzydev)
