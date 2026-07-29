@@ -1,4 +1,4 @@
-"""Shared constants for Polymarket (Polygon). Used by service.allowance."""
+"""Shared Polygon / Polymarket contract addresses."""
 
 # Polygon mainnet
 USDCe_ADDRESS = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"

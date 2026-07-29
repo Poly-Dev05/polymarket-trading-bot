@@ -1,30 +1,185 @@
-# Polymarket BTC 5-Minute Trading | Arbitrage | Bot (Version 2)
-An automated trading bot designed to identify and execute short-term opportunities in Bitcoin markets on Polymarket. The bot analyzes market data in real time and places trades on 5-minute prediction intervals, allowing it to capitalize on rapid price movements and micro-market inefficiencies.
+# Polymarket Endcycle Sniper Bot
+
+**Focus strategy:** an **AI predictive model** forecasts the winning side **4–5 seconds before** each crypto **Up/Down** market closes, then the bot buys that outcome and redeems at **$1**.
+
+Also includes a mid-market **arbitrage** mode (buy both sides → merge). This repo’s primary product is the **endcycle sniper**.
 
 **🌐 Language:** [English](README.md) | [中文](README.zh-CN.md) | [Français](README.fr.md) | [Español](README.es.md)
 
-**📞 Contact:** [S.E.I](https://t.me/sei_dev) (Telegram)
-
 ---
-🤖 Automated trading bot for Polymarket BTC 5-minute up/down markets. Trade 24/7 with three strategies:
 
-| Strategy | Description | Bot |
-|----------|-------------|-----|
-| **Strategy 1** | Arbitrage at the middle of the market | [@sei_arb_bot](https://t.me/sei_arb_bot)(~30 min), Script Bot |
-| **Strategy 2** | High-opportunity trading at end of market cycle | [@seitrading_bot](https://t.me/seitrading_bot)(~1 hour), Script Bot |
-| **Strategy 3** | Buy one of both UP/DOWN; when liquidity changes, get winning shares for $0.01 | Script Bot
+## Profile
 
-📹 **Watch on YouTube**
-
-[![YouTube – Polymarket 5min Trading Bot](https://img.youtube.com/vi/teeMT-c4S3o/maxresdefault.jpg)](https://www.youtube.com/watch?v=teeMT-c4S3o)
+| | |
+|--|--|
+| **Polymarket** | [`@dizzydev`](https://polymarket.com/@dizzydev) |
+| **Wallet** | [`0x43A0961c1c85e834c67661aaFF0dB964baF137d6`](https://polymarket.com/profile/0x43A0961c1c85e834c67661aaFF0dB964baF137d6) |
 
 ---
 
-## Strategy 1: Arbitrage (mid-market)
+## Demo video — Endcycle Sniper
 
-Buy both sides, merge to recover USDC. **Try in ~30 min:** [@sei_arb_bot](https://t.me/sei_arb_bot)
-📹 **Guide Demo:** [Watch on YouTube](https://www.youtube.com/watch?v=NsRDKPQrRIs)
-### Screenshots
+📹 **[Watch endcycle demo](assets/demo-dizzydev.mp4)** (~2 min)
+
+[![Endcycle market – last seconds](assets/demo-endcycle-market.png)](assets/demo-dizzydev.mp4)
+
+What the recording shows:
+
+1. Live **Bitcoin Up or Down** 5-minute window approaching close  
+2. **Price to beat** vs **current BTC** on the market card  
+3. Wallet connect / sign as **`@dizzydev`**  
+4. Portfolio, P/L curve, withdrawals, and Up/Down trade history across assets  
+
+| Late-cycle market | Portfolio (demo) |
+|-------------------|------------------|
+| ![Market](assets/demo-endcycle-market.png) | ![Portfolio](assets/demo-portfolio.png) |
+
+---
+
+## Results (`@dizzydev` — from demo)
+
+| Metric | Value |
+|--------|------:|
+| Portfolio / cash | **$2,910.41** |
+| Past day P/L | **+$378.90** |
+| 1-week P/L | **+$562.55** |
+| All-time P/L | **+$3,664.67** |
+
+![All-time P/L](assets/demo-pnl.png)
+
+---
+
+## Strategies overview
+
+| Strategy | Idea | Role |
+|----------|------|------|
+| **Endcycle Sniper** (focus) | AI model predicts UP/DOWN **4–5s before close**, then buy the predicted side | Primary — demo video |
+| **Arbitrage** | Buy UP + DOWN mid-market, merge to USDC | Secondary |
+| **$0.01 liquidity** | Catch thin books when winners print near 1¢ | Optional |
+
+---
+
+## Endcycle Sniper (detailed)
+
+### Idea
+
+Polymarket runs rolling **N-minute** crypto markets (often **5m**):
+
+- **Strike / price to beat** = reference price at interval **start**  
+- **UP** wins if price at **end** is **above** the strike  
+- **DOWN** wins if price at **end** is **below** the strike  
+- Winning shares redeem at **~$1**; losers → **$0**
+
+The endcycle bot does **not** wait for the book to already price a near-certainty favorite for the whole last minute. Instead it runs an **AI predictive model** on live market + spot features and outputs the likely winning direction **about 4–5 seconds before the market closes**. The bot then places a fast **BUY** on that side and holds through resolution.
+
+```
+Interval (e.g. 5 minutes)
+|-------------------------------------------|----|
+start                                  AI fire  end
+(price to beat fixed)              (~4–5s left) (resolve)
+                                         │
+                                         ├─ model → UP or DOWN
+                                         ├─ place BUY on predicted side
+                                         └─ redeem $1 if correct
+```
+
+### AI prediction window
+
+| Step | Timing | Action |
+|------|--------|--------|
+| 1 | Interval open | Discover market, track strike, spot feeds, book |
+| 2 | Mid-interval | Model features update continuously; **no entry** yet |
+| 3 | **~4–5 seconds before close** | Model emits predicted direction (UP or DOWN) |
+| 4 | Immediately after signal | Aggressive BUY on predicted token |
+| 5 | After resolution | Redeem winners; roll to next interval |
+
+The short **4–5s** lead is the core edge: early enough to get a fill before the clock hits zero, late enough that the model’s direction call is high-confidence.
+
+### What the demo market looked like
+
+From the video (BTC 5m approaching close):
+
+| Field | Example |
+|-------|---------|
+| Market | Bitcoin Up or Down · 5-minute ET window |
+| Price to beat | $64,513 |
+| Current price | ~$64,221 |
+| Context | Final seconds of the cycle — sniper / AI fire window |
+
+### Entry logic
+
+1. **Discover** the active Up/Down market for the configured asset / interval.  
+2. **Stream** spot (Coinbase / Binance / Chainlink), CLOB book, and time-to-close into the model.  
+3. **Idle** until the prediction window (~**4–5 seconds** before end).  
+4. **AI model** predicts **UP** or **DOWN**.  
+5. **Fire** BUY on the predicted side (limit up to `BUY_LIMIT_PRICE`, size `ORDER_SIZE`).  
+6. **Redeem** after resolution (relayer); repeat next interval.  
+
+Skip or size down if the book has no liquidity, latency is too high, or paper mode is on.
+
+### Why edge exists (and when it doesn’t)
+
+| Works when | Fails when |
+|------------|------------|
+| Model direction matches resolution | Last-tick reversal vs the prediction |
+| Order fills in the 4–5s window | Latency / reject — miss the close |
+| Ask still below $1 after fees | Book already fully priced / no size |
+| Feed features align with resolution oracle | Feature feed disagrees with Polymarket settle source |
+
+Sniping is **many small cycles** (buy predicted side → redeem $1), not one large bet.
+
+| Buy | Shares | Cost | Claim | Approx. PnL |
+|-----|-------:|-----:|------:|------------:|
+| 98¢ | 68.3 | $66.95 | $68.31 | **+$1.4** |
+| 98¢ | 102 | $100 | $102.03 | **+$2.03** |
+| 97¢ | ~103 | $100 | $103.07 | **+$3.07** |
+
+Pattern: **AI picks side late → buy → redeem $1**.
+
+### Features
+
+- **AI predictive model** — direction call **~4–5s before close**  
+- End-of-cycle execution only (not full-interval market making)  
+- Live spot + book features into the model  
+- Aggressive BUY on the predicted side  
+- Multi-asset short Up/Down markets (BTC, ETH, SOL, …)  
+- Redeem / claim after resolution  
+
+### Parameters (set in `src/config/params.py` or `.env`)
+
+| Param | Role |
+|-------|------|
+| `RISK_STOP_TIME_SEC` | Endcycle / prediction timing window (align with ~4–5s fire) |
+| `BUY_LIMIT_PRICE` | Max price to pay for the predicted side (e.g. 0.99) |
+| `ORDER_SIZE` | Order size |
+| `MARKET_INTERVAL_SECONDS` | Interval length (default 300 = 5m) |
+| `ASSET` / `MARKET_SLUG_PREFIX` | Which Up/Down series to follow |
+
+```bash
+# .env — fill before live sniping
+RISK_STOP_TIME=
+BUY_LIMIT_PRICE=0.99
+ORDER_SIZE=30
+ASSET=btc
+MARKET_INTERVAL_SECONDS=300
+PAPER_TRADING=1
+```
+
+### How it works (checklist)
+
+1. Find current crypto Up/Down market  
+2. Feed live data into the **AI model**  
+3. At **~4–5 seconds before close**, take the model’s UP/DOWN prediction  
+4. BUY the predicted side  
+5. Redeem after resolution; repeat  
+
+---
+
+## Arbitrage (mid-market)
+
+Secondary strategy.
+
+Buy **both** UP and DOWN when combined cost &lt; $1 (plus fees), then **merge** equal shares back to USDC. Mid-interval mispricing / inventory — not the AI endcycle path.
 
 |  |  |  |
 |--|--|--|
@@ -36,92 +191,47 @@ Buy both sides, merge to recover USDC. **Try in ~30 min:** [@sei_arb_bot](https:
 
 ### Features
 
-- 🔍 Auto Market Discovery – Finds active BTC 5-minute markets
-- 📊 Smart Position Management – Monitors UP/DOWN positions
-- 🛡️ Risk Protection – Auto-sells before market close
-- 💰 Token Merging – Recovers USDC from equal positions
+- Auto discovery of active crypto 5m markets  
+- Monitor UP/DOWN balances  
+- Merge equal inventory → USDC  
+- Optional force-sell near close  
 
-### How It Works
+### How it works
 
-1. Finds the current BTC 5-minute market  
-2. Monitors UP/DOWN token positions  
-3. Merges equal positions to recover USDC  
-4. Force-sells before market close (30s threshold)  
-5. Places orders for the next market automatically  
-
----
-
-## Strategy 2: End-of-cycle trading
-
-High-opportunity trading at the end of the market cycle. **Try in ~1 hour:** [@seitrading_bot](https://t.me/seitrading_bot)
-
-### Screenshots
-
-| Result 1 |
-|----------|
-| ![Result 1](assets/result1.png)
-### Features
-
-- High-opportunity detection at end of market cycle
-- Automated timing and order placement
-- Risk-managed exposure
-
-### How It Works
-
-1. Monitors the current 5-minute market toward resolution  
-2. Identifies high-opportunity moments at end of cycle  
-3. Places or adjusts orders accordingly  
-4. Manages positions and exits before market close  
+1. Find current market  
+2. Place / manage both sides  
+3. Merge equal amounts  
+4. Force-sell residual near close if needed  
+5. Roll to next market  
 
 ---
 
-## Strategy 3: Win with $0.01 when liquidity shifts 
+## Optional: $0.01 liquidity
 
-**Strategy:** You generally buy **one of both** UP and DOWN. When market liquidity changes, you can get **winning shares bought with $0.01** – minimal risk, same crypto up/down market.
-
-### Screenshots
-
-| Result |
-|--------|
-| ![Result 2](assets/result2.png) |
-
-### Features
-
-- Ultra-low risk – target $0.01 per side (UP and/or DOWN)
-- Exploits liquidity shifts in the crypto 5-minute up/down market
-- When liquidity changes, winning shares can be had for $0.01
-- Same market structure; different entry (one or both sides at minimal size)
-
-### How It Works
-
-1. Finds the current crypto up/down market  
-2. Monitors liquidity – buys UP and/or DOWN (generally one of both) with ~$0.01  
-3. When liquidity has changed, positions bought at $0.01 can become winning shares  
-4. Redeems winning side or merges if both filled; repeats for the next market  
+When the book is thin, winners can trade near **$0.01**. Separate from endcycle sniping; see `assets/result2.png`.
 
 ---
 
-## 🚀 Quick Start
+## Quick start
 
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# set PRIVATE_KEY, FUNDER, and endcycle params
+python main.py
+```
 
-2. **Configure `.env`:**
-   ```bash
-   PRIVATE_KEY=0x...    # Your wallet private key
-   ORDER_PRICE=0.01    # Limit order price
-   ORDER_SIZE=      # Order size
-   ```
+Config:
 
-3. **Run the bot:**
-   ```bash
-   python main.py
-   ```
+- Tunables: [`src/config/params.py`](src/config/params.py)  
+- Runtime state: [`src/config/config.py`](src/config/config.py)  
+- Env template: [`.env.example`](.env.example)  
+
+Guides: [docs.md](docs.md) · [WORKFLOW.md](WORKFLOW.md)
 
 ---
 
-## 📚 Documentation
+## Links
 
-- **User guide:** [docs.md](docs.md) – How to use the TG bot and get started.
+- **Polymarket profile:** [@dizzydev](https://polymarket.com/@dizzydev)

@@ -1,16 +1,16 @@
 # Core HTTP and environment
-
 python-dotenv==1.0.0
 
 # Web3 and blockchain interactions
 setuptools>=65.0.0,<68
 web3==6.8.0
 
-# Polymarket CLOB client
-py-clob-client>=0.34.5
+# Polymarket CLOB client (v2)
+py-clob-client-v2>=1.0.0
 
 # WebSocket support
 websocket-client==1.6.4
+py-chainlink-streams>=0.3.4
 
 # Date/time utilities
 python-dateutil>=2.8.2
