@@ -1,129 +1,150 @@
-# Polymarket BTC 5 分钟交易机器人
+# Polymarket HFT MM 机器人
+
+面向 Polymarket 加密货币 **Up/Down** 市场的**高频做市（HFT MM）机器人**。在整个周期内双向报价、捕获价差并轮换库存——**不受平台更新影响**（包括 Polymarket 的 TWAP 价格变更）。
 
 **🌐 语言 / Language:** [English](README.md) | [中文](README.zh-CN.md) | [Français](README.fr.md) | [Español](README.es.md)
 
-**📞 联系方式：** [S.E.I](https://t.me/sei_dev)（Telegram）
+---
+
+## 个人资料
+
+| | |
+|--|--|
+| **Telegram** | [`@dizzy`](https://t.me/dizzy283) |
+| **Polymarket** | [`@flippingsharks`](https://polymarket.com/@flippingsharks) |
+| **钱包** | [`0xc387c2a40d389f17b723b6bba9b18b7dbd2de4f4`](https://polymarket.com/profile/0xc387c2a40d389f17b723b6bba9b18b7dbd2de4f4) |
 
 ---
 
-🤖 Polymarket BTC 5 分钟涨跌市场自动交易机器人，7×24 小时运行，支持三种策略：
+## 演示视频
 
-| 策略 | 描述 | 机器人 |
-|------|------|--------|
-| **策略 1** | 市场中段套利 | [@sei_arb_bot](https://t.me/sei_arb_bot)（约 30 分钟） |
-| **策略 2** | 市场周期末尾高机会交易 | [@seitrading_bot](https://t.me/seitrading_bot)（约 1 小时） |
-| **策略 3** | 买入 UP/DOWN 之一；流动性变化时，以 $0.01 获取获胜份额 | 即将推出 |
+📹 **HFT MM 机器人 — 实盘演示**
 
-📹 **观看 YouTube 视频**
+<video src="assets/demo-video.mp4" controls width="100%"></video>
 
-[![YouTube – Polymarket 5分钟交易机器人](https://img.youtube.com/vi/teeMT-c4S3o/maxresdefault.jpg)](https://www.youtube.com/watch?v=teeMT-c4S3o)
+视频内容：
 
----
-
-## 策略 1：套利（市场中段）
-
-双向买入，合并后收回 USDC。**约 30 分钟体验：** [@sei_arb_bot](https://t.me/sei_arb_bot)
-📹 **教程演示：** [YouTube 观看](https://www.youtube.com/watch?v=NsRDKPQrRIs)
-
-### 截图
-
-|  |  |  |
-|--|--|--|
-| ![image1](assets/image1.png) | ![image2](assets/image2.png) | ![image3](assets/image3.png) |
-
-| 结果 |
-|------|
-| ![Result](assets/result.png) |
-
-### 功能
-
-- 🔍 自动发现市场 – 自动查找活跃的 BTC 5 分钟市场
-- 📊 智能仓位管理 – 监控 UP/DOWN 持仓
-- 🛡️ 风险保护 – 市场关闭前自动卖出
-- 💰 代币合并 – 从等量持仓中收回 USDC
-
-### 工作原理
-
-1. 查找当前 BTC 5 分钟市场  
-2. 监控 UP/DOWN 代币持仓  
-3. 合并等量持仓以收回 USDC  
-4. 在市场关闭前（30 秒阈值）强制卖出  
-5. 自动为下一个市场下单  
+1. 机器人以 **`@flippingsharks`** 身份连接 Polymarket
+2. 实时加密货币 **Up/Down** 市场（BTC 及其他资产）
+3. 持续**双向报价** — 买卖盘实时更新
+4. 整个周期内的订单流、成交与库存轮换
+5. Polymarket 个人资料中的投资组合、盈亏与交易历史
 
 ---
 
-## 策略 2：周期末尾交易
+## 策略
 
-在市场周期末尾进行高机会交易。**约 1 小时体验：** [@seitrading_bot](https://t.me/seitrading_bot)
+| | |
+|--|--|
+| **原策略** | **Endcycle Sniper（周期末狙击）** — AI 在收盘前 **4–5 秒**预测 UP/DOWN，买入预测方向，以 **$1** 赎回 |
+| **变化** | Polymarket **TWAP 价格更新**后，周期末狙击**已无法稳定盈利** |
+| **当前策略** | **HFT MM** — 全周期高频做市；**不受 TWAP 或其他结算变更影响** |
 
-### 截图
-
-| 结果 1 |
-|--------|
-| ![Result 1](assets/result1.png) |
-
-### 功能
-
-- 周期末尾高机会识别
-- 自动时机与下单
-- 风险可控敞口
-
-### 工作原理
-
-1. 监控当前 5 分钟市场直至结算  
-2. 识别周期末尾高机会时刻  
-3. 据此下单或调仓  
-4. 在市场关闭前管理仓位并平仓  
+周期末策略依赖结算参考价在周期末的错误定价。TWAP 消除了这一优势。**HFT MM** 改为通过价差捕获和持续双向流量获利——其逻辑不依赖最终参考价的计算方式。
 
 ---
 
-## 策略 3：流动性变化时以 $0.01 获利（即将推出）
+## 工作原理
 
-**策略：** 通常买入 UP 和 DOWN **其中之一**。当市场流动性变化时，可以以 **$0.01** 获得获胜份额——风险极低，仍为同一加密涨跌市场。
+Polymarket 运行滚动 **N 分钟**加密货币市场（通常为 **5 分钟**）：
 
-### 截图
+- **行权价 / 基准价** = 周期**开始**时的参考价格
+- **UP** 在**结束**时价格**高于**行权价则获胜
+- **DOWN** 在**结束**时价格**低于**行权价则获胜
+- 获胜份额以 **~$1** 赎回；失败 → **$0**
 
-| 结果 |
-|------|
-| ![Result 2](assets/result2.png) |
+```
+周期（例如 5 分钟）
+|-----------------------------------------------------------|
+开始                                                   结束
+     │  挂 UP 买/卖单 ────┐
+     │  挂 DOWN 买/卖单 ──┤  HFT MM 循环（全周期）
+     │  随盘口变动刷新 ───┤
+     │  轮换库存 ─────────┘
+     └─ 捕获价差 → 合并 / 赎回 → 下一市场
+```
 
-### 功能
+### HFT MM 循环
 
-- 超低风险 – 目标每侧 $0.01（UP 和/或 DOWN）
-- 利用加密 5 分钟涨跌市场的流动性变化
-- 流动性变化时，$0.01 可获获胜份额
-- 相同市场结构；不同入场（单侧或双侧最小规模）
+| 步骤 | 操作 |
+|------|------|
+| 1 | 发现当前配置资产 / 周期的活跃 Up/Down 市场 |
+| 2 | 订阅现货（Coinbase / Binance / Chainlink）与 CLOB 盘口更新 |
+| 3 | 在 UP 和 DOWN 代币上挂双向报价 |
+| 4 | 随价格与库存变化高频刷新报价 |
+| 5 | 结算后轮换库存；进入下一周期 |
 
-### 工作原理
+当盘口无流动性、延迟过高或开启模拟模式时，跳过或缩小规模。
 
-1. 查找当前加密涨跌市场  
-2. 监控流动性 – 以约 $0.01 买入 UP 和/或 DOWN（通常为其中一侧）  
-3. 流动性变化后，$0.01 建仓可成为获胜份额  
-4. 赎回获胜侧或合并两侧持仓；为下一市场重复  
+### 为何 HFT MM 不受平台变更影响
 
----
-
-## 🚀 快速开始
-
-1. **安装依赖：**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **配置 `.env`：**
-   ```bash
-   PRIVATE_KEY=0x...     # 你的钱包私钥
-   ORDER_PRICE=0.01      # 限价单价格
-   ORDER_SIZE=           # 订单大小
-   ```
-
-3. **运行机器人：**
-   ```bash
-   python main.py
-   ```
+| Endcycle Sniper（已弃用） | HFT MM（当前） |
+|---------------------------|----------------|
+| 优势来自**收盘前几秒**预测方向 | 优势来自全周期的**价差捕获** |
+| TWAP 改变了最终参考价定价 | 报价逻辑**独立于结算参考价** |
+| 周期末错误定价 → **无法稳定盈利** | 双向流量与库存轮换 → **不受更新影响** |
 
 ---
 
-## 📚 文档
+## 功能
 
-- **用户指南：** [docs.md](docs.md) – 如何使用 TG 机器人及入门说明。
+- **高频做市** — 持续买卖报价，非周期末狙击
+- **快速刷新订单** — 实时响应盘口与现货变动
+- 现货 + CLOB 数据源用于报价定价
+- 多资产 Up/Down 市场（BTC、ETH、SOL 等）
+- 库存管理 — 结算后合并与赎回
+- 模拟交易模式，安全测试
+
+---
+
+## 参数
+
+在 [`src/config/params.py`](src/config/params.py) 或 `.env` 中设置：
+
+| 参数 | 作用 |
+|------|------|
+| `ORDER_SIZE` | 报价 / 订单大小 |
+| `BUY_LIMIT_PRICE` | 吃单时的最高买入价 |
+| `SELL_LIMIT_PRICE` | 清仓时的最低卖出价 |
+| `MIN_PLACE_INTERVAL_SEC` | 两次下单之间的最小间隔 |
+| `MARKET_INTERVAL_SECONDS` | 周期长度（默认 `300` = 5 分钟） |
+| `ASSET` / `MARKET_SLUG_PREFIX` | 跟踪的 Up/Down 系列 |
+| `PAPER_TRADING` | `1` = 模拟，`0` = 实盘 |
+
+```bash
+# .env — 实盘前填写
+PRIVATE_KEY=
+FUNDER=
+ORDER_SIZE=30
+BUY_LIMIT_PRICE=0.99
+SELL_LIMIT_PRICE=0.01
+ASSET=btc
+MARKET_INTERVAL_SECONDS=300
+PAPER_TRADING=1
+```
+
+---
+
+## 快速开始
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env
+# 编辑 .env — 设置 PRIVATE_KEY、FUNDER 及 HFT MM 参数
+python main.py
+```
+
+**配置文件**
+
+- 可调参数：[`src/config/params.py`](src/config/params.py)
+- 运行时状态：[`src/config/config.py`](src/config/config.py)
+- 环境变量模板：[`.env.example`](.env.example)
+
+---
+
+## 链接
+
+- **Telegram：** [@dizzy](https://t.me/dizzy283)
+- **Polymarket：** [@flippingsharks](https://polymarket.com/@flippingsharks)
+- **钱包：** [0xc387c2a40d389f17b723b6bba9b18b7dbd2de4f4](https://polymarket.com/profile/0xc387c2a40d389f17b723b6bba9b18b7dbd2de4f4)

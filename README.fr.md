@@ -1,129 +1,150 @@
-# Bot de trading Polymarket BTC 5 minutes
+# Bot HFT MM Polymarket
+
+**Bot de market making haute fréquence** pour les marchés crypto **Up/Down** de Polymarket. Cote les deux côtés tout au long de chaque intervalle, capture le spread et fait tourner l'inventaire — **non affecté par les mises à jour de la plateforme** (y compris le changement de prix TWAP de Polymarket).
 
 **🌐 Langue / Language:** [English](README.md) | [中文](README.zh-CN.md) | [Français](README.fr.md) | [Español](README.es.md)
 
-**📞 Contact :** [S.E.I](https://t.me/sei_dev) (Telegram)
+---
+
+## Profil
+
+| | |
+|--|--|
+| **Telegram** | [`@dizzy`](https://t.me/dizzy283) |
+| **Polymarket** | [`@flippingsharks`](https://polymarket.com/@flippingsharks) |
+| **Portefeuille** | [`0xc387c2a40d389f17b723b6bba9b18b7dbd2de4f4`](https://polymarket.com/profile/0xc387c2a40d389f17b723b6bba9b18b7dbd2de4f4) |
 
 ---
 
-🤖 Bot de trading automatisé pour les marchés Polymarket BTC hausse/baisse de 5 minutes. Trade 24/7 avec trois stratégies :
+## Vidéo de démonstration
 
-| Stratégie | Description | Bot |
-|-----------|-------------|-----|
-| **Stratégie 1** | Arbitrage au milieu du marché | [@sei_arb_bot](https://t.me/sei_arb_bot) (~30 min) |
-| **Stratégie 2** | Trading haute opportunité en fin de cycle | [@seitrading_bot](https://t.me/seitrading_bot) (~1 h) |
-| **Stratégie 3** | Acheter UP ou DOWN ; quand la liquidité change, obtenir des parts gagnantes pour 0,01 $ | Bientôt |
+📹 **Bot HFT MM — démo en direct**
 
-📹 **Voir sur YouTube**
+<video src="assets/demo-video.mp4" controls width="100%"></video>
 
-[![YouTube – Bot de trading Polymarket 5 min](https://img.youtube.com/vi/teeMT-c4S3o/maxresdefault.jpg)](https://www.youtube.com/watch?v=teeMT-c4S3o)
+Ce que montre l'enregistrement :
 
----
-
-## Stratégie 1 : Arbitrage (milieu de marché)
-
-Acheter les deux côtés, fusionner pour récupérer l'USDC. **Essayer en ~30 min :** [@sei_arb_bot](https://t.me/sei_arb_bot)
-📹 **Démo :** [Voir sur YouTube](https://www.youtube.com/watch?v=NsRDKPQrRIs)
-
-### Captures d'écran
-
-|  |  |  |
-|--|--|--|
-| ![image1](assets/image1.png) | ![image2](assets/image2.png) | ![image3](assets/image3.png) |
-
-| Résultat |
-|----------|
-| ![Result](assets/result.png) |
-
-### Fonctionnalités
-
-- 🔍 Découverte automatique des marchés – Trouve les marchés BTC 5 min actifs
-- 📊 Gestion intelligente des positions – Surveille les positions UP/DOWN
-- 🛡️ Protection des risques – Vente auto avant fermeture du marché
-- 💰 Fusion de tokens – Récupère l'USDC des positions égales
-
-### Fonctionnement
-
-1. Trouve le marché BTC 5 min actuel  
-2. Surveille les positions de tokens UP/DOWN  
-3. Fusionne les positions égales pour récupérer l'USDC  
-4. Force la vente avant fermeture du marché (seuil 30 s)  
-5. Passe des ordres pour le prochain marché automatiquement  
+1. Bot connecté à Polymarket en tant que **`@flippingsharks`**
+2. Marchés crypto **Up/Down** en direct (BTC et autres actifs)
+3. **Cotation bilatérale continue** — offres et demandes mises à jour en temps réel
+4. Flux d'ordres, exécutions et rotation d'inventaire sur l'intervalle
+5. Portefeuille, P/L et historique des trades sur le profil Polymarket
 
 ---
 
-## Stratégie 2 : Trading en fin de cycle
+## Stratégie
 
-Trading haute opportunité en fin de cycle de marché. **Essayer en ~1 h :** [@seitrading_bot](https://t.me/seitrading_bot)
+| | |
+|--|--|
+| **Stratégie précédente** | **Endcycle Sniper** — l'IA prédisait UP/DOWN **4–5 s avant la clôture**, achetait le côté prédit, rachetait à **1 $** |
+| **Ce qui a changé** | Après la **mise à jour du prix TWAP** de Polymarket, le sniper de fin de cycle **ne produit plus de profit fiable** |
+| **Stratégie actuelle** | **HFT MM** — market making haute fréquence sur tout l'intervalle ; **non impacté par le TWAP ou d'autres changements de règlement** |
 
-### Captures d'écran
-
-| Résultat 1 |
-|------------|
-| ![Result 1](assets/result1.png) |
-
-### Fonctionnalités
-
-- Détection de haute opportunité en fin de cycle
-- Timing et passation d'ordres automatisés
-- Exposition à risque maîtrisé
-
-### Fonctionnement
-
-1. Surveille le marché 5 min actuel jusqu'à la résolution  
-2. Identifie les moments à haute opportunité en fin de cycle  
-3. Passe ou ajuste les ordres en conséquence  
-4. Gère les positions et sort avant la fermeture du marché  
+L'approche endcycle reposait sur une mauvaise tarification de fin de cycle par rapport à la référence de règlement. Le TWAP a supprimé cet avantage. **HFT MM** gagne via la capture de spread et le flux bilatéral continu — une logique qui ne dépend pas du calcul du prix de référence final.
 
 ---
 
-## Stratégie 3 : Gagner avec 0,01 $ quand la liquidité change (bientôt)
+## Fonctionnement
 
-**Stratégie :** Vous achetez généralement **l'un des deux** UP et DOWN. Quand la liquidité du marché change, vous pouvez obtenir **des parts gagnantes pour 0,01 $** – risque minimal, même marché crypto hausse/baisse.
+Polymarket propose des marchés crypto **N minutes** en continu (généralement **5 min**) :
 
-### Captures d'écran
+- **Strike / prix à battre** = prix de référence au **début** de l'intervalle
+- **UP** gagne si le prix à la **fin** est **au-dessus** du strike
+- **DOWN** gagne si le prix à la **fin** est **en dessous** du strike
+- Les parts gagnantes se rachètent à **~1 $** ; les perdantes → **0 $**
 
-| Résultat |
-|----------|
-| ![Result 2](assets/result2.png) |
+```
+Intervalle (ex. 5 minutes)
+|-----------------------------------------------------------|
+début                                                  fin
+     │  poster bid/ask UP ────┐
+     │  poster bid/ask DOWN ──┤  boucle HFT MM (intervalle complet)
+     │  rafraîchir sur mouvement du carnet ─┤
+     │  rééquilibrer l'inventaire ─────────┘
+     └─ capturer le spread → fusionner / racheter → marché suivant
+```
 
-### Fonctionnalités
+### Boucle HFT MM
 
-- Risque ultra-faible – objectif 0,01 $ par côté (UP et/ou DOWN)
-- Exploite les changements de liquidité du marché crypto 5 min
-- Quand la liquidité change, des parts gagnantes à 0,01 $
-- Même structure de marché ; entrée différente (un ou les deux côtés en taille minimale)
+| Étape | Action |
+|-------|--------|
+| 1 | Découvrir le marché Up/Down actif pour l'actif / l'intervalle configuré |
+| 2 | Streamer le spot (Coinbase / Binance / Chainlink) et les mises à jour du carnet CLOB |
+| 3 | Poster des cotations bilatérales sur les tokens UP et DOWN |
+| 4 | Rafraîchir les cotations à haute fréquence selon le prix et l'inventaire |
+| 5 | Rééquilibrer l'inventaire après résolution ; passer à l'intervalle suivant |
 
-### Fonctionnement
+Ignorer ou réduire la taille si le carnet n'a pas de liquidité, la latence est trop élevée, ou le mode papier est activé.
 
-1. Trouve le marché crypto hausse/baisse actuel  
-2. Surveille la liquidité – achète UP et/ou DOWN (en général l'un des deux) à ~0,01 $  
-3. Quand la liquidité a changé, les positions à 0,01 $ peuvent devenir des parts gagnantes  
-4. Récupère le côté gagnant ou fusionne si les deux sont remplis ; répète pour le prochain marché  
+### Pourquoi HFT MM survit aux changements de plateforme
 
----
-
-## 🚀 Démarrage rapide
-
-1. **Installer les dépendances :**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. **Configurer `.env` :**
-   ```bash
-   PRIVATE_KEY=0x...     # Clé privée du portefeuille
-   ORDER_PRICE=0.01      # Prix des ordres à cours limité
-   ORDER_SIZE=           # Taille des ordres
-   ```
-
-3. **Lancer le bot :**
-   ```bash
-   python main.py
-   ```
+| Endcycle Sniper (déprécié) | HFT MM (actif) |
+|----------------------------|----------------|
+| Avantage via la prédiction de direction **quelques secondes avant la clôture** | Avantage via la **capture de spread** sur tout l'intervalle |
+| Le TWAP a changé la tarification de référence finale | La logique de cotation est **indépendante de la référence de règlement** |
+| Mauvaise tarification de fin de cycle → **plus de profit fiable** | Flux bilatéral et rotation d'inventaire → **inchangés par les mises à jour** |
 
 ---
 
-## 📚 Documentation
+## Fonctionnalités
 
-- **Guide utilisateur :** [docs.md](docs.md) – Comment utiliser le bot TG et démarrer.
+- **Market making haute fréquence** — cotation bid/ask continue, pas de sniping de fin de cycle
+- **Rafraîchissement rapide des ordres** — réagit en temps réel aux mouvements du carnet et du spot
+- Flux spot + CLOB pour le pricing des cotations
+- Marchés Up/Down multi-actifs (BTC, ETH, SOL, …)
+- Gestion d'inventaire — fusion et rachat après résolution
+- Mode paper trading pour des tests sécurisés
+
+---
+
+## Paramètres
+
+À définir dans [`src/config/params.py`](src/config/params.py) ou `.env` :
+
+| Param | Rôle |
+|-------|------|
+| `ORDER_SIZE` | Taille de cotation / ordre |
+| `BUY_LIMIT_PRICE` | Prix d'achat max en traversant le carnet |
+| `SELL_LIMIT_PRICE` | Prix de vente min en liquidant l'inventaire |
+| `MIN_PLACE_INTERVAL_SEC` | Intervalle minimum entre les placements d'ordres |
+| `MARKET_INTERVAL_SECONDS` | Durée de l'intervalle (défaut `300` = 5 min) |
+| `ASSET` / `MARKET_SLUG_PREFIX` | Série Up/Down à suivre |
+| `PAPER_TRADING` | `1` = simulation, `0` = live |
+
+```bash
+# .env — remplir avant le trading live
+PRIVATE_KEY=
+FUNDER=
+ORDER_SIZE=30
+BUY_LIMIT_PRICE=0.99
+SELL_LIMIT_PRICE=0.01
+ASSET=btc
+MARKET_INTERVAL_SECONDS=300
+PAPER_TRADING=1
+```
+
+---
+
+## Démarrage rapide
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate   # Windows : .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env
+# éditer .env — définir PRIVATE_KEY, FUNDER et les params HFT MM
+python main.py
+```
+
+**Fichiers de configuration**
+
+- Paramètres : [`src/config/params.py`](src/config/params.py)
+- État runtime : [`src/config/config.py`](src/config/config.py)
+- Modèle d'environnement : [`.env.example`](.env.example)
+
+---
+
+## Liens
+
+- **Telegram :** [@dizzy](https://t.me/dizzy283)
+- **Polymarket :** [@flippingsharks](https://polymarket.com/@flippingsharks)
+- **Portefeuille :** [0xc387c2a40d389f17b723b6bba9b18b7dbd2de4f4](https://polymarket.com/profile/0xc387c2a40d389f17b723b6bba9b18b7dbd2de4f4)
