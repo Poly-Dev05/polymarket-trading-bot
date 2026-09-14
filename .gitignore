@@ -21,3 +21,7 @@ venv/
 .DS_Store
 Thumbs.db
 
+# Node (local video tooling only)
+node_modules/
+package-lock.json
+
