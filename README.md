@@ -20,7 +20,7 @@
 
 📹 **HFT MM bot — live demo**
 
-Preview plays automatically below. **Click the preview to open the full video** (with sound).
+Preview plays automatically below. **Click the preview to open the full video**.
 
 [![HFT MM bot — live demo](assets/demo-preview.gif)](https://github.com/Poly-Dev05/polymarket-trading-bot/blob/main/assets/demo-video.mp4)
 

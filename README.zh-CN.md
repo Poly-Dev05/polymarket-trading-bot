@@ -20,7 +20,7 @@
 
 📹 **HFT MM 机器人 — 实盘演示**
 
-下方预览会自动播放。**点击预览可打开完整视频**（含声音）。
+下方预览会自动播放。**点击预览可打开完整视频**。
 
 [![HFT MM 机器人 — 实盘演示](assets/demo-preview.gif)](https://github.com/Poly-Dev05/polymarket-trading-bot/blob/main/assets/demo-video.mp4)
 
